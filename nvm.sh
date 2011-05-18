@@ -45,6 +45,9 @@ nvm_version()
     if [ ! "$PATTERN" -o "$PATTERN" = 'current' ]; then
         VERSION=`node -v 2>/dev/null`
     fi
+    if [ "$PATTERN" = 'unstable' ]; then
+        VERSION='unstable'
+    fi
     if [ "$PATTERN" = 'stable' ]; then
         PATTERN='*.*[02468].'
     fi
@@ -95,7 +98,7 @@ nvm()
       echo "    nvm use stable              Use the stable release"
       echo "    nvm install latest          Install the latest, possibly unstable version"
       echo "    nvm use 0.2                 Use the latest available 0.2.x release"
-      echo "    nvm alias default v0.4.0    Set v0.4.0 as the default" 
+      echo "    nvm alias default v0.4.0    Set v0.4.0 as the default"
       echo
     ;;
     "install" )
@@ -105,7 +108,31 @@ nvm()
       fi
       [ "$NOCURL" ] && curl && return
       VERSION=`nvm_version $2`
-      if (
+      if [ $2 == "unstable" ]; then
+        if (
+          mkdir -p "$NVM_DIR/src" && \
+          cd "$NVM_DIR/src"
+          if ( ! git clone https://github.com/joyent/node.git node-unstable 2> /dev/null )
+          then
+            cd node-unstable && git pull && cd ..
+          fi
+          cd node-unstable && \
+          ./configure --prefix="$NVM_DIR/$VERSION" && \
+          make && \
+          rm -f "$NVM_DIR/node-unstable" 2>/dev/null && \
+          make install
+        )
+        then
+          nvm use $VERSION
+          if ! which npm ; then
+            echo "Installing npm..."
+            # TODO: if node version 0.2.x add npm_install=0.2.19 before sh
+            curl http://npmjs.org/install.sh | clean=yes sh
+          fi
+          else
+            echo "nvm: install $VERSION failed!"
+          fi
+      elif (
         mkdir -p "$NVM_DIR/src" && \
         cd "$NVM_DIR/src" && \
         curl -C - -# "http://nodejs.org/dist/node-$VERSION.tar.gz" -o "node-$VERSION.tar.gz" && \
@@ -203,7 +230,7 @@ nvm()
       mkdir -p $NVM_DIR/alias
       VERSION=`nvm_version $3`
       if [ $? -ne 0 ]; then
-        echo "! WARNING: Version '$3' does not exist." >&2 
+        echo "! WARNING: Version '$3' does not exist." >&2
       fi
       echo $3 > "$NVM_DIR/alias/$2"
       if [ ! "$3" = "$VERSION" ]; then
@@ -226,6 +253,7 @@ nvm()
         echo " done."
         )
         [ "$STABLE" = `nvm_version stable` ] || echo "NEW stable: `nvm_version stable`"
+        [ `cd $NVM_DIR/src/node-unstable/ && git fetch && git rev-list master..origin/master --count` -gt 0 ] || echo "NEW unstable"
         [ "$LATEST" = `nvm_version latest` ] || echo "NEW latest: `nvm_version latest`"
     ;;
     "clear-cache" )
