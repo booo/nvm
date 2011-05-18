@@ -97,6 +97,7 @@ nvm()
       echo "    nvm install v0.4.0          Install a specific version number"
       echo "    nvm use stable              Use the stable release"
       echo "    nvm install latest          Install the latest, possibly unstable version"
+      echo "    nvm install unstable        Install the unstalbe version from github"
       echo "    nvm use 0.2                 Use the latest available 0.2.x release"
       echo "    nvm alias default v0.4.0    Set v0.4.0 as the default"
       echo
